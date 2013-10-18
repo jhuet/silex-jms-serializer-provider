@@ -37,54 +37,45 @@ class JmsSerializerServiceProvider implements ServiceProviderInterface
     public function register(Application $app)
     {
         $app["serializer.namingStrategy.separator"] = null;
+        $app["serializer.namingStrategy.lowerCase"] = null;
 
-        $builder = function () use ($app) {
-            $serializerBuilder = SerializerBuilder::create()->setDebug($app["debug"]);
+        $app["serializer.builder"] = $app->share(
+            function () use ($app) {
+                $serializerBuilder = SerializerBuilder::create()->setDebug($app["debug"]);
 
-            if ($app->offsetExists("serializer.annotationReader")) {
-                $serializerBuilder->setAnnotationReader($app["serializer.annotationReader"]);
+                $app->offsetExists("serializer.annotationReader") ||
+                    $serializerBuilder->setAnnotationReader($app["serializer.annotationReader"]);
+
+                $app->offsetExists("serializer.cacheDir") ||
+                    $serializerBuilder->setCacheDir($app["serializer.cacheDir"]);
+
+                $app->offsetExists("serializer.configureHandlers") ||
+                    $serializerBuilder->configureHandlers($app["serializer.configureHandlers"]);
+
+                $app->offsetExists("serializer.configureListeners") ||
+                    $serializerBuilder->configureListeners($app["serializer.configureListeners"]);
+
+                $app->offsetExists("serializer.objectConstructor") ||
+                    $serializerBuilder->setObjectConstructor($app["serializer.objectConstructor"]);
+
+                $app->offsetExists("serializer.namingStrategy") ||
+                    $this->namingStrategy($app, $serializerBuilder);
+
+                $app->offsetExists("serializer.serializationVisitors") ||
+                    $this->serializationListeners($app, $serializerBuilder);
+
+                $app->offsetExists("serializer.deserializationVisitors") ||
+                    $this->deserializationListeners($app, $serializerBuilder);
+
+                $app->offsetExists("serializer.includeInterfaceMetadata") ||
+                    $serializerBuilder->includeInterfaceMetadata($app["serializer.includeInterfaceMetadata"]);
+
+                $app->offsetExists("serializer.metadataDirs") ||
+                    $serializerBuilder->setMetadataDirs($app["serializer.metadataDirs"]);
+
+                return $serializerBuilder;
             }
-
-            if ($app->offsetExists("serializer.cacheDir")) {
-                $serializerBuilder->setCacheDir($app["serializer.cacheDir"]);
-            }
-
-            if ($app->offsetExists("serializer.configureHandlers")) {
-                $serializerBuilder->configureHandlers($app["serializer.configureHandlers"]);
-            }
-
-            if ($app->offsetExists("serializer.configureListeners")) {
-                $serializerBuilder->configureListeners($app["serializer.configureListeners"]);
-            }
-
-            if ($app->offsetExists("serializer.objectConstructor")) {
-                $serializerBuilder->setObjectConstructor($app["serializer.objectConstructor"]);
-            }
-
-            if ($app->offsetExists("serializer.namingStrategy")) {
-                $this->namingStrategy($app, $serializerBuilder);
-            }
-
-            if ($app->offsetExists("serializer.serializationVisitors")) {
-                $this->serializationListeners($app, $serializerBuilder);
-            }
-
-            if ($app->offsetExists("serializer.deserializationVisitors")) {
-                $this->deserializationListeners($app, $serializerBuilder);
-            }
-
-            if ($app->offsetExists("serializer.includeInterfaceMetadata")) {
-                $serializerBuilder->includeInterfaceMetadata($app["serializer.includeInterfaceMetadata"]);
-            }
-
-            if ($app->offsetExists("serializer.metadataDirs")) {
-                $serializerBuilder->setMetadataDirs($app["serializer.metadataDirs"]);
-            }
-
-            return $serializerBuilder;
-        };
-
-        $app["serializer.builder"] = $app->share($builder);
+        );
 
         $app["serializer"] = $app->share(
             function () use ($app) {
@@ -110,6 +101,7 @@ class JmsSerializerServiceProvider implements ServiceProviderInterface
                     break;
                 default:
                     throw new ServiceUnavailableHttpException(
+                        null,
                         "Unknown property naming strategy '{$app["serializer.namingStrategy"]}'.  " .
                         "Allowed values are 'IdenticalProperty' or 'CamelCase'"
                     );
