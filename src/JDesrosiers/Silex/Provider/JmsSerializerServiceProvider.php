@@ -39,57 +39,9 @@ class JmsSerializerServiceProvider implements ServiceProviderInterface
         $app["serializer.namingStrategy.separator"] = null;
         $app["serializer.namingStrategy.lowerCase"] = null;
 
-        $app["serializer.builder"] = $app->share(
-            function () use ($app) {
-                $serializerBuilder = SerializerBuilder::create()->setDebug($app["debug"]);
-
-                if ($app->offsetExists("serializer.annotationReader")) {
-                    $serializerBuilder->setAnnotationReader($app["serializer.annotationReader"]);
-                }
-
-                if ($app->offsetExists("serializer.cacheDir")) {
-                    $serializerBuilder->setCacheDir($app["serializer.cacheDir"]);
-                }
-
-                if ($app->offsetExists("serializer.configureHandlers")) {
-                    $serializerBuilder->configureHandlers($app["serializer.configureHandlers"]);
-                }
-
-                if ($app->offsetExists("serializer.configureListeners")) {
-                    $serializerBuilder->configureListeners($app["serializer.configureListeners"]);
-                }
-
-                if ($app->offsetExists("serializer.objectConstructor")) {
-                    $serializerBuilder->setObjectConstructor($app["serializer.objectConstructor"]);
-                }
-
-                if ($app->offsetExists("serializer.namingStrategy")) {
-                    $this->namingStrategy($app, $serializerBuilder);
-                }
-
-                if ($app->offsetExists("serializer.serializationVisitors")) {
-                    $this->setSerializationVisitors($app, $serializerBuilder);
-                }
-
-                if ($app->offsetExists("serializer.deserializationVisitors")) {
-                    $this->setDeserializationVisitors($app, $serializerBuilder);
-                }
-
-                if ($app->offsetExists("serializer.includeInterfaceMetadata")) {
-                    $serializerBuilder->includeInterfaceMetadata($app["serializer.includeInterfaceMetadata"]);
-                }
-
-                if ($app->offsetExists("serializer.metadataDirs")) {
-                    $serializerBuilder->setMetadataDirs($app["serializer.metadataDirs"]);
-                }
-
-                return $serializerBuilder;
-            }
-        );
-
         $app["serializer"] = $app->share(
             function () use ($app) {
-                return $app["serializer.builder"]->build();
+                return $this->serializerBuilder($app)->build();
             }
         );
     }
@@ -159,5 +111,52 @@ class JmsSerializerServiceProvider implements ServiceProviderInterface
         foreach ($app["serializer.deserializationVisitors"] as $format => $visitor) {
             $serializerBuilder->setDeserializationVisitor($format, $visitor);
         }
+    }
+
+    protected function serializerBuilder(Application $app)
+    {
+        $serializerBuilder = SerializerBuilder::create()->setDebug($app["debug"]);
+
+        if ($app->offsetExists("serializer.annotationReader")) {
+            $serializerBuilder->setAnnotationReader($app["serializer.annotationReader"]);
+        }
+
+        if ($app->offsetExists("serializer.cacheDir")) {
+            $serializerBuilder->setCacheDir($app["serializer.cacheDir"]);
+        }
+
+        if ($app->offsetExists("serializer.configureHandlers")) {
+            $serializerBuilder->configureHandlers($app["serializer.configureHandlers"]);
+        }
+
+        if ($app->offsetExists("serializer.configureListeners")) {
+            $serializerBuilder->configureListeners($app["serializer.configureListeners"]);
+        }
+
+        if ($app->offsetExists("serializer.objectConstructor")) {
+            $serializerBuilder->setObjectConstructor($app["serializer.objectConstructor"]);
+        }
+
+        if ($app->offsetExists("serializer.namingStrategy")) {
+            $this->namingStrategy($app, $serializerBuilder);
+        }
+
+        if ($app->offsetExists("serializer.serializationVisitors")) {
+            $this->setSerializationVisitors($app, $serializerBuilder);
+        }
+
+        if ($app->offsetExists("serializer.deserializationVisitors")) {
+            $this->setDeserializationVisitors($app, $serializerBuilder);
+        }
+
+        if ($app->offsetExists("serializer.includeInterfaceMetadata")) {
+            $serializerBuilder->includeInterfaceMetadata($app["serializer.includeInterfaceMetadata"]);
+        }
+
+        if ($app->offsetExists("serializer.metadataDirs")) {
+            $serializerBuilder->setMetadataDirs($app["serializer.metadataDirs"]);
+        }
+
+        return $serializerBuilder;
     }
 }
