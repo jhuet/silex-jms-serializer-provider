@@ -10,7 +10,7 @@ use JMS\Serializer\Naming\SerializedNameAnnotationStrategy;
 use JMS\Serializer\SerializerBuilder;
 use Silex\Application;
 use Silex\ServiceProviderInterface;
-use Symfony\Component\HttpKernel\Exception\HttpException;
+use Symfony\Component\HttpKernel\Exception\ServiceUnavailableHttpException;
 
 /**
  * JMS Serializer integration for Silex.
@@ -24,84 +24,91 @@ class JmsSerializerServiceProvider implements ServiceProviderInterface
 
     public function register(Application $app)
     {
-        $app["serializer.builder"] = $app->share(function () use ($app) {
-            $serializerBuilder = SerializerBuilder::create()->setDebug($app["debug"]);
+        $app["serializer.namingStrategy.separator"] = null;
 
-            if ($app->offsetExists("serializer.annotationReader")) {
-                $serializerBuilder->setAnnotationReader($app["serializer.annotationReader"]);
-            }
+        $app["serializer.builder"] = $app->share(
+            function () use ($app) {
+                $serializerBuilder = SerializerBuilder::create()->setDebug($app["debug"]);
 
-            if ($app->offsetExists("serializer.cacheDir")) {
-                $serializerBuilder->setCacheDir($app["serializer.cacheDir"]);
-            }
+                if ($app->offsetExists("serializer.annotationReader")) {
+                    $serializerBuilder->setAnnotationReader($app["serializer.annotationReader"]);
+                }
 
-            if ($app->offsetExists("serializer.configureHandlers")) {
-                $serializerBuilder->configureHandlers($app["serializer.configureHandlers"]);
-            }
+                if ($app->offsetExists("serializer.cacheDir")) {
+                    $serializerBuilder->setCacheDir($app["serializer.cacheDir"]);
+                }
 
-            if ($app->offsetExists("serializer.configureListeners")) {
-                $serializerBuilder->configureListeners($app["serializer.configureListeners"]);
-            }
+                if ($app->offsetExists("serializer.configureHandlers")) {
+                    $serializerBuilder->configureHandlers($app["serializer.configureHandlers"]);
+                }
 
-            if ($app->offsetExists("serializer.objectConstructor")) {
-                $serializerBuilder->setObjectConstructor($app["serializer.objectConstructor"]);
-            }
+                if ($app->offsetExists("serializer.configureListeners")) {
+                    $serializerBuilder->configureListeners($app["serializer.configureListeners"]);
+                }
 
-            if ($app->offsetExists("serializer.namingStrategy")) {
-                if ($app["serializer.namingStrategy"] instanceof PropertyNamingStrategyInterface) {
-                    $namingStrategy = $app["serializer.namingStrategy"];
-                } else {
-                    switch ($app["serializer.namingStrategy"]) {
-                        case "IdenticalProperty":
-                            $namingStrategy = new IdenticalPropertyNamingStrategy();
-                            break;
+                if ($app->offsetExists("serializer.objectConstructor")) {
+                    $serializerBuilder->setObjectConstructor($app["serializer.objectConstructor"]);
+                }
 
-                        case "CamelCase":
-                            $separator = $app->offsetExists("serializer.namingStrategy.separator") ? $app["serializer.namingStrategy.separator"] : null;
-                            $lowerCase = $app->offsetExists("serializer.namingStrategy.lowerCase") ? $app["serializer.namingStrategy.lowerCase"] : null;
-                            $namingStrategy = new CamelCaseNamingStrategy($separator, $lowerCase);
-                            break;
+                if ($app->offsetExists("serializer.namingStrategy")) {
+                    if ($app["serializer.namingStrategy"] instanceof PropertyNamingStrategyInterface) {
+                        $namingStrategy = $app["serializer.namingStrategy"];
+                    } else {
+                        switch ($app["serializer.namingStrategy"]) {
+                            case "IdenticalProperty":
+                                $namingStrategy = new IdenticalPropertyNamingStrategy();
+                                break;
+                            case "CamelCase":
+                                $namingStrategy = new CamelCaseNamingStrategy(
+                                    $app["serializer.namingStrategy.separator"],
+                                    $app["serializer.namingStrategy.lowerCase"]
+                                );
+                                break;
+                            default:
+                                throw new ServiceUnavailableHttpException(
+                                    "Unknown property naming strategy '{$app["serializer.namingStrategy"]}'.  " .
+                                    "Allowed values are 'IdenticalProperty' or 'CamelCase'"
+                                );
+                        }
 
-                        default:
-                            throw new HttpException(500, "Unknown property naming strategy '{$app["serializer.namingStrategy"]}'.  Allowed values are 'IdenticalProperty' or 'CamelCase'");
-                            break;
+                        $namingStrategy = new SerializedNameAnnotationStrategy($namingStrategy);
                     }
 
-                    $namingStrategy = new SerializedNameAnnotationStrategy($namingStrategy);
+                    $serializerBuilder->setPropertyNamingStrategy($namingStrategy);
                 }
 
-                $serializerBuilder->setPropertyNamingStrategy($namingStrategy);
-            }
+                if ($app->offsetExists("serializer.serializationVisitors")) {
+                    $serializerBuilder->addDefaultSerializationVisitors();
 
-            if ($app->offsetExists("serializer.serializationVisitors")) {
-                $serializerBuilder->addDefaultSerializationVisitors();
-
-                foreach ($app["serializer.serializationVisitors"] as $format => $visitor) {
-                    $serializerBuilder->setSerializationVisitor($format, $visitor);
+                    foreach ($app["serializer.serializationVisitors"] as $format => $visitor) {
+                        $serializerBuilder->setSerializationVisitor($format, $visitor);
+                    }
                 }
-            }
 
-            if ($app->offsetExists("serializer.deserializationVisitors")) {
-                $serializerBuilder->addDefaultDeserializationVisitors();
+                if ($app->offsetExists("serializer.deserializationVisitors")) {
+                    $serializerBuilder->addDefaultDeserializationVisitors();
 
-                foreach ($app["serializer.deserializationVisitors"] as $format => $visitor) {
-                    $serializerBuilder->setDeserializationVisitor($format, $visitor);
+                    foreach ($app["serializer.deserializationVisitors"] as $format => $visitor) {
+                        $serializerBuilder->setDeserializationVisitor($format, $visitor);
+                    }
                 }
+
+                if ($app->offsetExists("serializer.includeInterfaceMetadata")) {
+                    $serializerBuilder->includeInterfaceMetadata($app["serializer.includeInterfaceMetadata"]);
+                }
+
+                if ($app->offsetExists("serializer.metadataDirs")) {
+                    $serializerBuilder->setMetadataDirs($app["serializer.metadataDirs"]);
+                }
+
+                return $serializerBuilder;
             }
+        );
 
-            if ($app->offsetExists("serializer.includeInterfaceMetadata")) {
-                $serializerBuilder->includeInterfaceMetadata($app["serializer.includeInterfaceMetadata"]);
+        $app["serializer"] = $app->share(
+            function () use ($app) {
+                return $app["serializer.builder"]->build();
             }
-
-            if ($app->offsetExists("serializer.metadataDirs")) {
-                $serializerBuilder->setMetadataDirs($app["serializer.metadataDirs"]);
-            }
-
-            return $serializerBuilder;
-        });
-
-        $app["serializer"] = $app->share(function () use ($app) {
-            return $app["serializer.builder"]->build();
-        });
+        );
     }
 }
