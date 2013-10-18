@@ -43,35 +43,45 @@ class JmsSerializerServiceProvider implements ServiceProviderInterface
             function () use ($app) {
                 $serializerBuilder = SerializerBuilder::create()->setDebug($app["debug"]);
 
-                $app->offsetExists("serializer.annotationReader") ||
+                if ($app->offsetExists("serializer.annotationReader")) {
                     $serializerBuilder->setAnnotationReader($app["serializer.annotationReader"]);
+                }
 
-                $app->offsetExists("serializer.cacheDir") ||
+                if ($app->offsetExists("serializer.cacheDir")) {
                     $serializerBuilder->setCacheDir($app["serializer.cacheDir"]);
+                }
 
-                $app->offsetExists("serializer.configureHandlers") ||
+                if ($app->offsetExists("serializer.configureHandlers")) {
                     $serializerBuilder->configureHandlers($app["serializer.configureHandlers"]);
+                }
 
-                $app->offsetExists("serializer.configureListeners") ||
+                if ($app->offsetExists("serializer.configureListeners")) {
                     $serializerBuilder->configureListeners($app["serializer.configureListeners"]);
+                }
 
-                $app->offsetExists("serializer.objectConstructor") ||
+                if ($app->offsetExists("serializer.objectConstructor")) {
                     $serializerBuilder->setObjectConstructor($app["serializer.objectConstructor"]);
+                }
 
-                $app->offsetExists("serializer.namingStrategy") ||
+                if ($app->offsetExists("serializer.namingStrategy")) {
                     $this->namingStrategy($app, $serializerBuilder);
+                }
 
-                $app->offsetExists("serializer.serializationVisitors") ||
-                    $this->serializationListeners($app, $serializerBuilder);
+                if ($app->offsetExists("serializer.serializationVisitors")) {
+                    $this->setSerializationVisitors($app, $serializerBuilder);
+                }
 
-                $app->offsetExists("serializer.deserializationVisitors") ||
-                    $this->deserializationListeners($app, $serializerBuilder);
+                if ($app->offsetExists("serializer.deserializationVisitors")) {
+                    $this->setDeserializationVisitors($app, $serializerBuilder);
+                }
 
-                $app->offsetExists("serializer.includeInterfaceMetadata") ||
+                if ($app->offsetExists("serializer.includeInterfaceMetadata")) {
                     $serializerBuilder->includeInterfaceMetadata($app["serializer.includeInterfaceMetadata"]);
+                }
 
-                $app->offsetExists("serializer.metadataDirs") ||
+                if ($app->offsetExists("serializer.metadataDirs")) {
                     $serializerBuilder->setMetadataDirs($app["serializer.metadataDirs"]);
+                }
 
                 return $serializerBuilder;
             }
@@ -84,7 +94,15 @@ class JmsSerializerServiceProvider implements ServiceProviderInterface
         );
     }
 
-    protected function namingStrategy($app, $serializerBuilder)
+    /**
+     * Set the serialization naming strategy
+     *
+     * @param Application $app
+     * @param SerializerBuilder $serializerBuilder
+     *
+     * @throws ServiceUnavailableHttpException
+     */
+    protected function namingStrategy(Application $app, SerializerBuilder $serializerBuilder)
     {
         if ($app["serializer.namingStrategy"] instanceof PropertyNamingStrategyInterface) {
             $namingStrategy = $app["serializer.namingStrategy"];
@@ -113,7 +131,13 @@ class JmsSerializerServiceProvider implements ServiceProviderInterface
         $serializerBuilder->setPropertyNamingStrategy($namingStrategy);
     }
 
-    protected function serializationListeners($app, $serializerBuilder)
+    /**
+     * Override default serialization vistors
+     *
+     * @param Application $app
+     * @param SerializerBuilder $serializerBuilder
+     */
+    protected function setSerializationVisitors(Application $app, SerializerBuilder $serializerBuilder)
     {
         $serializerBuilder->addDefaultSerializationVisitors();
 
@@ -122,7 +146,13 @@ class JmsSerializerServiceProvider implements ServiceProviderInterface
         }
     }
 
-    protected function deserializationListeners($app, $serializerBuilder)
+    /**
+     * Override default deserialization visitors
+     *
+     * @param Application $app
+     * @param SerializerBuilder $serializerBuilder
+     */
+    protected function setDeserializationVisitors(Application $app, SerializerBuilder $serializerBuilder)
     {
         $serializerBuilder->addDefaultDeserializationVisitors();
 
