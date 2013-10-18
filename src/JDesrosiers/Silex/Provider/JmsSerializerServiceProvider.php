@@ -17,11 +17,23 @@ use Symfony\Component\HttpKernel\Exception\ServiceUnavailableHttpException;
  */
 class JmsSerializerServiceProvider implements ServiceProviderInterface
 {
+    /**
+     * Register the jms/serializer annotations
+     *
+     * @param Application $app
+     */
     public function boot(Application $app)
     {
         AnnotationRegistry::registerAutoloadNamespace("JMS\Serializer\Annotation", $app["serializer.srcDir"]);
     }
 
+    /**
+     * Registet the serializer and serializer.builder services
+     *
+     * @param Application $app
+     *
+     * @throws ServiceUnavailableHttpException
+     */
     public function register(Application $app)
     {
         $app["serializer.namingStrategy.separator"] = null;
@@ -50,46 +62,15 @@ class JmsSerializerServiceProvider implements ServiceProviderInterface
             }
 
             if ($app->offsetExists("serializer.namingStrategy")) {
-                if ($app["serializer.namingStrategy"] instanceof PropertyNamingStrategyInterface) {
-                    $namingStrategy = $app["serializer.namingStrategy"];
-                } else {
-                    switch ($app["serializer.namingStrategy"]) {
-                        case "IdenticalProperty":
-                            $namingStrategy = new IdenticalPropertyNamingStrategy();
-                            break;
-                        case "CamelCase":
-                            $namingStrategy = new CamelCaseNamingStrategy(
-                                $app["serializer.namingStrategy.separator"],
-                                $app["serializer.namingStrategy.lowerCase"]
-                            );
-                            break;
-                        default:
-                            throw new ServiceUnavailableHttpException(
-                                "Unknown property naming strategy '{$app["serializer.namingStrategy"]}'.  " .
-                                "Allowed values are 'IdenticalProperty' or 'CamelCase'"
-                            );
-                    }
-
-                    $namingStrategy = new SerializedNameAnnotationStrategy($namingStrategy);
-                }
-
-                $serializerBuilder->setPropertyNamingStrategy($namingStrategy);
+                $this->namingStrategy($app, $serializerBuilder);
             }
 
             if ($app->offsetExists("serializer.serializationVisitors")) {
-                $serializerBuilder->addDefaultSerializationVisitors();
-
-                foreach ($app["serializer.serializationVisitors"] as $format => $visitor) {
-                    $serializerBuilder->setSerializationVisitor($format, $visitor);
-                }
+                $this->serializationListeners($app, $serializerBuilder);
             }
 
             if ($app->offsetExists("serializer.deserializationVisitors")) {
-                $serializerBuilder->addDefaultDeserializationVisitors();
-
-                foreach ($app["serializer.deserializationVisitors"] as $format => $visitor) {
-                    $serializerBuilder->setDeserializationVisitor($format, $visitor);
-                }
+                $this->deserializationListeners($app, $serializerBuilder);
             }
 
             if ($app->offsetExists("serializer.includeInterfaceMetadata")) {
@@ -110,5 +91,51 @@ class JmsSerializerServiceProvider implements ServiceProviderInterface
                 return $app["serializer.builder"]->build();
             }
         );
+    }
+
+    protected function namingStrategy($app, $serializerBuilder)
+    {
+        if ($app["serializer.namingStrategy"] instanceof PropertyNamingStrategyInterface) {
+            $namingStrategy = $app["serializer.namingStrategy"];
+        } else {
+            switch ($app["serializer.namingStrategy"]) {
+                case "IdenticalProperty":
+                    $namingStrategy = new IdenticalPropertyNamingStrategy();
+                    break;
+                case "CamelCase":
+                    $namingStrategy = new CamelCaseNamingStrategy(
+                        $app["serializer.namingStrategy.separator"],
+                        $app["serializer.namingStrategy.lowerCase"]
+                    );
+                    break;
+                default:
+                    throw new ServiceUnavailableHttpException(
+                        "Unknown property naming strategy '{$app["serializer.namingStrategy"]}'.  " .
+                        "Allowed values are 'IdenticalProperty' or 'CamelCase'"
+                    );
+            }
+
+            $namingStrategy = new SerializedNameAnnotationStrategy($namingStrategy);
+        }
+
+        $serializerBuilder->setPropertyNamingStrategy($namingStrategy);
+    }
+
+    protected function serializationListeners($app, $serializerBuilder)
+    {
+        $serializerBuilder->addDefaultSerializationVisitors();
+
+        foreach ($app["serializer.serializationVisitors"] as $format => $visitor) {
+            $serializerBuilder->setSerializationVisitor($format, $visitor);
+        }
+    }
+
+    protected function deserializationListeners($app, $serializerBuilder)
+    {
+        $serializerBuilder->addDefaultDeserializationVisitors();
+
+        foreach ($app["serializer.deserializationVisitors"] as $format => $visitor) {
+            $serializerBuilder->setDeserializationVisitor($format, $visitor);
+        }
     }
 }
