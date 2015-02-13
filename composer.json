@@ -22,7 +22,7 @@
     },
     "autoload": {
         "psr-4": {
-            "Orloc\\Silex\\Provider\\": "src/"
+            "Orloc\\": "src/"
         }
     },
     "minimum-stability": "stable"
