@@ -1,6 +1,6 @@
 <?php
 
-namespace \Orloc\Silex\Provider;
+namespace Orloc\Silex\Provider;
 
 use Doctrine\Common\Annotations\AnnotationRegistry;
 use JMS\Serializer\Naming\CamelCaseNamingStrategy;
