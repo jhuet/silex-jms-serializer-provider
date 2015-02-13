@@ -42,7 +42,7 @@ class JmsSerializerServiceProvider implements ServiceProviderInterface
         $app["serializer.namingStrategy.separator"] = null;
         $app["serializer.namingStrategy.lowerCase"] = null;
 
-        $app["serializer.builder"] = $app->share(
+        $app["serializer.builder"] = $app->factory(
             function () use ($app) {
                 $serializerBuilder = SerializerBuilder::create()->setDebug($app["debug"]);
 
@@ -90,7 +90,7 @@ class JmsSerializerServiceProvider implements ServiceProviderInterface
             }
         );
 
-        $app["serializer"] = $app->share(
+        $app["serializer"] = $app->factory(
             function () use ($app) {
                 return $app["serializer.builder"]->build();
             }
