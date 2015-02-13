@@ -10,6 +10,7 @@ use JMS\Serializer\Naming\SerializedNameAnnotationStrategy;
 use JMS\Serializer\SerializerBuilder;
 use Silex\Application;
 use Pimple\ServiceProviderInterface;
+use Pimple\Container;
 use Symfony\Component\HttpKernel\Exception\ServiceUnavailableHttpException;
 
 /**
@@ -36,7 +37,7 @@ class JmsSerializerServiceProvider implements ServiceProviderInterface
      *
      * @throws ServiceUnavailableHttpException
      */
-    public function register(Application $app)
+    public function register(Container $app)
     {
         $app["serializer.namingStrategy.separator"] = null;
         $app["serializer.namingStrategy.lowerCase"] = null;
