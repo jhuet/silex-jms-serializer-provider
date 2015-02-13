@@ -1,6 +1,6 @@
 <?php
 
-namespace Orloc\Tests\Silex\Provider;
+namespace \Orloc\Tests\Silex\Provider;
 
 use JDesrosiers\Silex\Provider\JmsSerializerServiceProvider;
 use Silex\Application;
